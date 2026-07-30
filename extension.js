@@ -159,12 +159,17 @@ class TopWeatherIndicator extends PanelMenu.Button {
                 jobs.push(Alerts.fetchAlerts(this._opts()));
             else
                 jobs.push(Promise.resolve({alerts: [], level: 'none'}));
-            const [weather, alerts] = await Promise.all(jobs);
-            this._weather = weather;
-            this._alerts = alerts.alerts;
-            this._alertLevel = alerts.level;
-        } catch (e) {
-            logError(e, 'topweather: fetch failed; keeping last-good data');
+            // Settled so an alerts outage can't wipe last-good weather (or vice versa).
+            const [weatherResult, alertsResult] = await Promise.allSettled(jobs);
+            if (weatherResult.status === 'fulfilled') {
+                this._weather = weatherResult.value;
+            } else {
+                logError(weatherResult.reason, 'topweather: fetch failed; keeping last-good data');
+            }
+            if (alertsResult.status === 'fulfilled') {
+                this._alerts = alertsResult.value.alerts;
+                this._alertLevel = alertsResult.value.level;
+            }
         } finally {
             this._fetching = false;
             this._updateWatchBlink();

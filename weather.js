@@ -31,11 +31,12 @@ export function buildGeocodeUrl(name) {
 
 export function buildOpenMeteoUrl(lat, lon, unit) {
     const tempUnit = unit === 'c' ? 'celsius' : 'fahrenheit';
+    const windUnit = unit === 'c' ? 'kmh' : 'mph';
     return 'https://api.open-meteo.com/v1/forecast' +
         `?latitude=${lat}&longitude=${lon}` +
         '&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,is_day' +
         '&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset' +
-        `&temperature_unit=${tempUnit}&wind_speed_unit=mph&forecast_days=4&timezone=auto`;
+        `&temperature_unit=${tempUnit}&wind_speed_unit=${windUnit}&forecast_days=4&timezone=auto`;
 }
 
 export function buildIpApiUrl() {
