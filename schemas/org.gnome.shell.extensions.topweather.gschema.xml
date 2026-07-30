@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.topweather" path="/org/gnome/shell/extensions/topweather/">
+    <key name="unit" type="s">
+      <default>"f"</default>
+      <summary>Temperature unit</summary>
+      <description>Display temperatures in Fahrenheit ("f") or Celsius ("c").</description>
+    </key>
+    <key name="location-mode" type="s">
+      <default>"auto"</default>
+      <summary>Location mode</summary>
+      <description>How the location is determined: automatic (IP-based), city name, or ZIP code.</description>
+    </key>
+    <key name="location" type="s">
+      <default>""</default>
+      <summary>Location value</summary>
+      <description>City name or ZIP code used when location-mode is "city" or "zip".</description>
+    </key>
+    <key name="appearance" type="s">
+      <default>"system"</default>
+      <summary>Menu appearance</summary>
+      <description>Override styling of the dropdown menu: follow the system, or force light/dark.</description>
+    </key>
+    <key name="glyph-style" type="s">
+      <default>"color"</default>
+      <summary>Glyph style</summary>
+      <description>Color emoji glyphs or monochrome unicode symbols.</description>
+    </key>
+    <key name="refresh-interval" type="i">
+      <range min="5" max="120"/>
+      <default>30</default>
+      <summary>Refresh interval</summary>
+      <description>Minutes between automatic weather updates.</description>
+    </key>
+    <key name="provider" type="s">
+      <default>"wttr"</default>
+      <summary>Weather provider</summary>
+      <description>Weather data source: wttr.in or Open-Meteo. Both are free and need no API key.</description>
+    </key>
+    <key name="show-glyph" type="b">
+      <default>true</default>
+      <summary>Show glyph in panel</summary>
+      <description>Whether to show the conditions glyph in the top bar.</description>
+    </key>
+    <key name="show-temp" type="b">
+      <default>true</default>
+      <summary>Show temperature in panel</summary>
+      <description>Whether to show the current temperature in the top bar.</description>
+    </key>
+    <key name="show-alerts" type="b">
+      <default>true</default>
+      <summary>Show severe weather alerts</summary>
+      <description>Whether to fetch and display US National Weather Service alerts (warnings and watches) for the current location.</description>
+    </key>
+  </schema>
+</schemalist>

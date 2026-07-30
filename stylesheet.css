@@ -1,0 +1,88 @@
+/* TopWeather stylesheet */
+
+.topweather-panel-box {
+    spacing: 4px;
+}
+
+.topweather-glyph {
+    font-size: 1.05em;
+}
+
+.topweather-temp {
+    font-weight: bold;
+}
+
+.topweather-location {
+    font-size: 0.85em;
+    color: #888888;
+}
+
+.topweather-headline {
+    font-size: 1.1em;
+    font-weight: bold;
+}
+
+.topweather-details {
+    font-size: 0.9em;
+    color: #aaaaaa;
+}
+
+.topweather-forecast-row {
+    font-size: 0.95em;
+}
+
+/* Appearance overrides (applied to the menu actor) */
+.topweather-light .popup-menu-content {
+    background-color: #f6f5f4;
+    color: #2e3436;
+}
+
+.topweather-light .topweather-location,
+.topweather-light .topweather-details {
+    color: #5e5c64;
+}
+
+.topweather-dark .popup-menu-content {
+    background-color: #1e1e1e;
+    color: #eeeeec;
+}
+
+.topweather-dark .topweather-location,
+.topweather-dark .topweather-details {
+    color: #9a9996;
+}
+
+/* Severe weather alerts */
+.topweather-panel-warning {
+    color: #e01b24;
+}
+
+.topweather-panel-watch {
+    color: #ff7800;
+}
+
+.topweather-alert-header {
+    font-weight: bold;
+}
+
+.topweather-alert-header.topweather-alert-warning {
+    color: #e01b24;
+}
+
+.topweather-alert-header.topweather-alert-watch {
+    color: #ff7800;
+}
+
+.topweather-alert-body {
+    font-size: 0.85em;
+}
+
+.topweather-alert-body.topweather-alert-warning {
+    background-color: rgba(224, 27, 36, 0.12);
+    border-left: 3px solid #e01b24;
+}
+
+.topweather-alert-body.topweather-alert-watch {
+    background-color: rgba(255, 120, 0, 0.10);
+    border-left: 3px solid #ff7800;
+}

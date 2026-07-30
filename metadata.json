@@ -1,0 +1,9 @@
+{
+    "uuid": "topweather@rucaradio",
+    "name": "TopWeather",
+    "description": "Weather glyph and temperature in the top bar, with an extended forecast dropdown. Free no-key providers (wttr.in / Open-Meteo).",
+    "version": 1,
+    "shell-version": ["50"],
+    "url": "https://github.com/rucaradio/topweather",
+    "settings-schema": "org.gnome.shell.extensions.topweather"
+}
