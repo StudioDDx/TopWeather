@@ -4,7 +4,7 @@
 
 import {fetchJson, buildIpApiUrl, LocationMode} from './weather.js';
 
-const NWS_UA = 'topweather-gnome-extension (github.com/rucaradio/topweather)';
+const NWS_UA = 'topweather-gnome-extension (github.com/StudioDDx/TopWeather, studioddx.com)';
 
 /* ------------------------------------------------------------------ */
 /* URL builders (pure)                                                 */

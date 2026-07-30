@@ -1,5 +1,10 @@
 # TopWeather
 
+[![A StudioDDx Product](https://img.shields.io/badge/A%20StudioDDx-Product-6c3df4)](https://studioddx.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Open Source](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-red)](https://opensource.org/licenses/MIT)
+[![GNOME Shell 50](https://img.shields.io/badge/GNOME%20Shell-50-4A86CF)](https://www.gnome.org)
+
 A GNOME Shell 50 extension that puts a weather glyph and the current temperature in the top bar, right next to the clock — with an extended forecast dropdown and a full preferences window.
 
 No API keys required: data comes from free providers ([wttr.in](https://wttr.in) and [Open-Meteo](https://open-meteo.com)).
@@ -31,8 +36,8 @@ No API keys required: data comes from free providers ([wttr.in](https://wttr.in)
 ## Install
 
 ```bash
-git clone https://github.com/rucaradio/topweather.git
-cd topweather
+git clone https://github.com/StudioDDx/TopWeather.git
+cd TopWeather
 ./install.sh
 ```
 
@@ -75,4 +80,8 @@ install.sh      — copies files to ~/.local/share/gnome-shell/extensions and co
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Open source under the [MIT License](LICENSE) — free to use, modify, and distribute.
+
+---
+
+**TopWeather** is a [StudioDDx](https://studioddx.com) product.

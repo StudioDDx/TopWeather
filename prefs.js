@@ -2,6 +2,7 @@
 
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
+import Gdk from 'gi://Gdk';
 import Gio from 'gi://Gio';
 
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
@@ -148,9 +149,20 @@ export default class TopWeatherPreferences extends ExtensionPreferences {
         const aboutGroup = new Adw.PreferencesGroup({title: 'About'});
         page.add(aboutGroup);
         const aboutRow = new Adw.ActionRow({
-            title: 'TopWeather',
-            subtitle: 'Weather in your top bar. Data: wttr.in / Open-Meteo (no API keys required).',
+            title: 'TopWeather — a StudioDDx product',
+            subtitle: 'Weather in your top bar. Open source (MIT). Data: wttr.in / Open-Meteo — no API keys required.',
         });
         aboutGroup.add(aboutRow);
+
+        const linkRow = new Adw.ActionRow({
+            title: 'studioddx.com',
+            subtitle: 'More StudioDDx projects',
+        });
+        linkRow.add_suffix(new Gtk.Image({icon_name: 'adw-external-link-symbolic'}));
+        linkRow.set_activatable(true);
+        linkRow.connect('activated', () => {
+            Gtk.show_uri(window, 'https://studioddx.com', Gdk.CURRENT_TIME);
+        });
+        aboutGroup.add(linkRow);
     }
 }
