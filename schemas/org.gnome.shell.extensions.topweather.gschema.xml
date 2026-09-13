@@ -42,6 +42,12 @@
       <summary>Show glyph in panel</summary>
       <description>Whether to show the conditions glyph in the top bar.</description>
     </key>
+    <key name="panel-position" type="s">
+      <choices><choice value="left"/><choice value="center"/><choice value="right"/></choices>
+      <default>"center"</default>
+      <summary>Panel position</summary>
+      <description>Place TopWeather on the left, next to the clock, or on the right.</description>
+    </key>
     <key name="show-temp" type="b">
       <default>true</default>
       <summary>Show temperature in panel</summary>

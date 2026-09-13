@@ -1,0 +1,31 @@
+name: Test and package
+on:
+  push:
+    branches: [main, 'release/**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install GJS and packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gjs gir1.2-soup-3.0 libglib2.0-bin gnome-shell zip unzip shellcheck
+      - name: Syntax and shell lint
+        run: |
+          for file in *.js tests/*.js; do node --input-type=module --check < "$file"; done
+          shellcheck build.sh install.sh tests/*.sh
+          git diff --check
+      - name: Regression tests
+        run: ./tests/run.sh
+      - name: Build release bundle
+        run: ./build.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: topweather-1.5
+          path: dist/*
+          if-no-files-found: error

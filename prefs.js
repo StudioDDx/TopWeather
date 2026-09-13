@@ -119,6 +119,17 @@ export default class TopWeatherPreferences extends ExtensionPreferences {
         const panelGroup = new Adw.PreferencesGroup({title: 'Panel'});
         page.add(panelGroup);
 
+        const positionRow = new Adw.ComboRow({
+            title: 'Panel position',
+            model: Gtk.StringList.new(['Left', 'Center (next to clock)', 'Right']),
+        });
+        const positions = ['left', 'center', 'right'];
+        positionRow.set_selected(Math.max(0, positions.indexOf(settings.get_string('panel-position'))));
+        positionRow.connect('notify::selected', () => {
+            settings.set_string('panel-position', positions[positionRow.get_selected()]);
+        });
+        panelGroup.add(positionRow);
+
         const showGlyphRow = new Adw.SwitchRow({
             title: 'Show glyph in panel',
         });
@@ -149,7 +160,7 @@ export default class TopWeatherPreferences extends ExtensionPreferences {
         const aboutGroup = new Adw.PreferencesGroup({title: 'About'});
         page.add(aboutGroup);
         const aboutRow = new Adw.ActionRow({
-            title: 'TopWeather — a StudioDDx product',
+            title: `TopWeather ${this.metadata['version-name'] ?? this.metadata.version} — a StudioDDx product`,
             subtitle: 'Weather in your top bar. Open source (MIT). Data: wttr.in / Open-Meteo — no API keys required.',
         });
         aboutGroup.add(aboutRow);

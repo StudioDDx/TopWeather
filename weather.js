@@ -34,7 +34,7 @@ export function buildOpenMeteoUrl(lat, lon, unit) {
     const windUnit = unit === 'c' ? 'kmh' : 'mph';
     return 'https://api.open-meteo.com/v1/forecast' +
         `?latitude=${lat}&longitude=${lon}` +
-        '&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,is_day' +
+        '&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,cloud_cover,precipitation,rain,snowfall,wind_speed_10m,wind_direction_10m,is_day' +
         '&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset' +
         `&temperature_unit=${tempUnit}&wind_speed_unit=${windUnit}&forecast_days=4&timezone=auto`;
 }
@@ -226,6 +226,8 @@ export function approximateMoonGlyph(date, mono) {
 
 // isNight: boolean; moonGlyph: string to use for clear-night skies (may be null)
 export function glyphFor(code, provider, {mono = false, isNight = false, moonGlyph = null} = {}) {
+    if (code === null || code === undefined || code === '')
+        return {glyph: mono ? '?' : '❓', desc: 'Unknown'};
     const table = provider === Provider.OPENMETEO ? WMO_CODES : WTTR_CODES;
     const key = provider === Provider.OPENMETEO ? Number(code) : String(code);
     const entry = table[key];
@@ -286,11 +288,43 @@ export function isNightNow(sunrise, sunset, now = new Date()) {
 /* km/h ('c').                                                         */
 /* ------------------------------------------------------------------ */
 
+function finiteNumber(value, {min = -Infinity, max = Infinity} = {}) {
+    if ((typeof value !== 'number' && typeof value !== 'string') ||
+        (typeof value === 'string' && value.trim() === ''))
+        return null;
+    const number = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(number) || number < min || number > max)
+        return null;
+    return number;
+}
+
+function coordinate(value, minimum, maximum) {
+    return finiteNumber(value, {min: minimum, max: maximum});
+}
+
+function direction(value) {
+    const degrees = finiteNumber(value, {min: 0, max: 360});
+    return degrees === 360 ? 0 : degrees;
+}
+
+function roundedNumber(value, bounds) {
+    const number = finiteNumber(value, bounds);
+    return number === null ? null : Math.round(number);
+}
+
+function requiredTemperature(value, provider) {
+    const number = roundedNumber(value);
+    if (number === null)
+        throw new Error(`${provider}: missing or invalid current temperature`);
+    return number;
+}
+
 export function parseWttr(json, unit, mono) {
-    const cur = json.current_condition?.[0];
+    const cur = json?.current_condition?.[0];
     if (!cur)
         throw new Error('wttr.in: missing current_condition');
-    const days = json.weather ?? [];
+    const days = Array.isArray(json.weather)
+        ? json.weather.filter(day => day && typeof day === 'object') : [];
     const astro = days[0]?.astronomy?.[0] ?? {};
     const sunrise = astro.sunrise ?? null;
     const sunset = astro.sunset ?? null;
@@ -305,14 +339,17 @@ export function parseWttr(json, unit, mono) {
         : '';
 
     const {glyph, desc} = glyphFor(String(cur.weatherCode), Provider.WTTR, {mono, isNight, moonGlyph});
+    const weatherCode = cur.weatherCode === null || cur.weatherCode === undefined
+        ? null
+        : String(cur.weatherCode);
 
     const forecast = days.slice(0, 4).map(d => {
-        const g = glyphFor(String(d.hourly?.[4]?.weatherCode ?? d.hourly?.[0]?.weatherCode ?? '113'), Provider.WTTR, {mono});
+        const g = glyphFor(d.hourly?.[4]?.weatherCode ?? d.hourly?.[0]?.weatherCode, Provider.WTTR, {mono});
         return {
             date: d.date,
             dayName: dayName(d.date),
-            hi: Number(pick(d.maxtempF, d.maxtempC)),
-            lo: Number(pick(d.mintempF, d.mintempC)),
+            hi: roundedNumber(pick(d.maxtempF, d.maxtempC)),
+            lo: roundedNumber(pick(d.mintempF, d.mintempC)),
             desc: g.desc,
             glyph: g.glyph,
         };
@@ -320,22 +357,37 @@ export function parseWttr(json, unit, mono) {
 
     return {
         current: {
-            temp: Number(pick(cur.temp_F, cur.temp_C)),
-            feelsLike: Number(pick(cur.FeelsLikeF, cur.FeelsLikeC)),
-            humidity: Number(cur.humidity),
-            windSpeed: Number(pick(cur.windspeedMiles, cur.windspeedKmph)),
+            temp: requiredTemperature(pick(cur.temp_F, cur.temp_C), 'wttr.in'),
+            feelsLike: roundedNumber(pick(cur.FeelsLikeF, cur.FeelsLikeC)),
+            humidity: finiteNumber(cur.humidity, {min: 0, max: 100}),
+            windSpeed: finiteNumber(pick(cur.windspeedMiles, cur.windspeedKmph), {min: 0}),
             desc, glyph, isNight, sunrise, sunset, moonPhase,
+            cloudCover: finiteNumber(cur.cloudcover, {min: 0, max: 100}),
+            // wttr's current-condition `precipMM` has no declared accumulation
+            // interval. Preserve the amount, but do not mislabel it as mm/hour.
+            precipitation: null,
+            rain: null,
+            snowfall: null,
+            precipitationAmountMm: finiteNumber(cur.precipMM, {min: 0}),
+            precipitationPeriodHours: null,
+            windSpeedKmh: finiteNumber(cur.windspeedKmph, {min: 0}),
+            windDirection: direction(cur.winddirDegree),
+            weatherCode,
         },
         days: forecast,
         location: locName,
         unit,
+        provider: Provider.WTTR,
+        latitude: coordinate(area?.latitude, -90, 90),
+        longitude: coordinate(area?.longitude, -180, 180),
         fetchedAt: GLib.DateTime.new_now_local(),
     };
 }
 
-export function parseOpenMeteo(current, daily, unit, mono, locName = '') {
-    if (!current || !daily)
-        throw new Error('Open-Meteo: missing current/daily data');
+export function parseOpenMeteo(current, daily, unit, mono, locName = '', latitude = null, longitude = null) {
+    if (!current)
+        throw new Error('Open-Meteo: missing current data');
+    daily ??= {};
 
     const sunrise = daily.sunrise?.[0] ?? null;
     const sunset = daily.sunset?.[0] ?? null;
@@ -346,14 +398,18 @@ export function parseOpenMeteo(current, daily, unit, mono, locName = '') {
     const moonGlyph = approximateMoonGlyph(new Date(), mono);
 
     const {glyph, desc} = glyphFor(current.weather_code, Provider.OPENMETEO, {mono, isNight, moonGlyph});
+    const sourceWindSpeed = finiteNumber(current.wind_speed_10m, {min: 0});
+    const windSpeedKmh = sourceWindSpeed === null
+        ? null
+        : sourceWindSpeed * (unit === 'c' ? 1 : 1.609344);
 
-    const forecast = (daily.time ?? []).slice(0, 4).map((t, i) => {
-        const g = glyphFor(daily.weather_code[i], Provider.OPENMETEO, {mono});
+    const forecast = (Array.isArray(daily.time) ? daily.time : []).slice(0, 4).map((t, i) => {
+        const g = glyphFor(daily.weather_code?.[i], Provider.OPENMETEO, {mono});
         return {
             date: t,
             dayName: dayName(t),
-            hi: Math.round(daily.temperature_2m_max[i]),
-            lo: Math.round(daily.temperature_2m_min[i]),
+            hi: roundedNumber(daily.temperature_2m_max?.[i]),
+            lo: roundedNumber(daily.temperature_2m_min?.[i]),
             desc: g.desc,
             glyph: g.glyph,
             sunrise: daily.sunrise?.[i] ?? null,
@@ -363,15 +419,34 @@ export function parseOpenMeteo(current, daily, unit, mono, locName = '') {
 
     return {
         current: {
-            temp: Math.round(current.temperature_2m),
-            feelsLike: Math.round(current.apparent_temperature),
-            humidity: Math.round(current.relative_humidity_2m),
-            windSpeed: Math.round(current.wind_speed_10m),
+            temp: requiredTemperature(current.temperature_2m, 'Open-Meteo'),
+            feelsLike: roundedNumber(current.apparent_temperature),
+            humidity: roundedNumber(current.relative_humidity_2m, {min: 0, max: 100}),
+            windSpeed: roundedNumber(current.wind_speed_10m, {min: 0}),
             desc, glyph, isNight, sunrise, sunset, moonPhase: null,
+            cloudCover: finiteNumber(current.cloud_cover, {min: 0, max: 100}),
+            // Open-Meteo current precipitation/rain are sums over the preceding
+            // hour, numerically equivalent to the requested canonical mm/hour.
+            precipitation: finiteNumber(current.precipitation, {min: 0}),
+            precipitationAmountMm: finiteNumber(current.precipitation, {min: 0}),
+            precipitationPeriodHours: 1,
+            rain: finiteNumber(current.rain, {min: 0}),
+            // Open-Meteo snowfall is centimetres of snow depth, not water
+            // equivalent. Keep the canonical field unknown and expose the raw
+            // observation with its unit/period semantics in normalized data.
+            snowfall: null,
+            snowfallAmountCm: finiteNumber(current.snowfall, {min: 0}),
+            snowfallPeriodHours: 1,
+            windSpeedKmh,
+            windDirection: direction(current.wind_direction_10m),
+            weatherCode: finiteNumber(current.weather_code),
         },
         days: forecast,
         location: locName,
         unit,
+        provider: Provider.OPENMETEO,
+        latitude: coordinate(latitude, -90, 90),
+        longitude: coordinate(longitude, -180, 180),
         fetchedAt: GLib.DateTime.new_now_local(),
     };
 }
@@ -393,30 +468,30 @@ export function dayName(isoDate) {
 
 // opts: {provider, mode, location, unit, mono}
 // Returns the normalized weather object (see parsers above).
-export async function fetchWeather(opts) {
+export async function fetchWeather(opts, {request = fetchJson} = {}) {
     const {provider, mode, location, unit, mono} = opts;
     if (provider === Provider.OPENMETEO)
-        return fetchOpenMeteo(opts);
-    return fetchWttr(opts);
+        return fetchOpenMeteo(opts, request);
+    return fetchWttr(opts, request);
 }
 
-async function fetchWttr({mode, location, unit, mono}) {
+async function fetchWttr({mode, location, unit, mono}, request) {
     const loc = mode === LocationMode.AUTO ? '' : location;
-    const json = await fetchJson(buildWttrUrl(loc));
+    const json = await request(buildWttrUrl(loc));
     return parseWttr(json, unit, mono);
 }
 
-async function fetchOpenMeteo({mode, location, unit, mono}) {
+async function fetchOpenMeteo({mode, location, unit, mono}, request) {
     let lat, lon, locName;
     if (mode === LocationMode.AUTO) {
-        const ip = await fetchJson(buildIpApiUrl());
+        const ip = await request(buildIpApiUrl());
         if (typeof ip.latitude !== 'number' || typeof ip.longitude !== 'number')
             throw new Error('ipapi.co: no coordinates in response');
         lat = ip.latitude;
         lon = ip.longitude;
         locName = [ip.city, ip.region].filter(Boolean).join(', ');
     } else {
-        const geo = await fetchJson(buildGeocodeUrl(location));
+        const geo = await request(buildGeocodeUrl(location));
         const hit = geo.results?.[0];
         if (!hit)
             throw new Error(`Open-Meteo geocoding: no result for "${location}"`);
@@ -424,6 +499,15 @@ async function fetchOpenMeteo({mode, location, unit, mono}) {
         lon = hit.longitude;
         locName = [hit.name, hit.admin1 ?? hit.country].filter(Boolean).join(', ');
     }
-    const json = await fetchJson(buildOpenMeteoUrl(lat, lon, unit));
-    return parseOpenMeteo(json.current, json.daily, unit, mono, locName);
+    const json = await request(buildOpenMeteoUrl(lat, lon, unit));
+    return parseOpenMeteo(
+        json.current,
+        json.daily,
+        unit,
+        mono,
+        locName,
+        // The API response identifies a forecast grid cell, which can lie
+        // across a border. Alerts and snapshots describe the resolved city.
+        lat,
+        lon);
 }

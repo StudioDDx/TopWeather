@@ -12,3 +12,6 @@ schemas/*.compiled
 
 # Screenshots work-in-progress
 screenshots/tmp/
+
+# Reproducible release output
+dist/
