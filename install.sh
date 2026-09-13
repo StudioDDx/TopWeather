@@ -4,25 +4,84 @@
 set -euo pipefail
 
 UUID="topweather@rucaradio"
-SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="${BASH_SOURCE[0]%/*}"
+if [[ "$SCRIPT_DIR" == "${BASH_SOURCE[0]}" ]]; then
+    SCRIPT_DIR="."
+fi
+SRC_DIR="$(cd "$SCRIPT_DIR" && pwd)"
 DEST_DIR="$HOME/.local/share/gnome-shell/extensions/$UUID"
+DEST_PARENT="${DEST_DIR%/*}"
+
+REQUIRED_COMMANDS=(cp dirname glib-compile-schemas mkdir mktemp mv rm)
+REQUIRED_FILES=(
+    extension.js
+    prefs.js
+    weather.js
+    display.js
+    refresh.js
+    snapshot.js
+    alerts.js
+    metadata.json
+    stylesheet.css
+    schemas/org.gnome.shell.extensions.topweather.gschema.xml
+)
+
+for command_name in "${REQUIRED_COMMANDS[@]}"; do
+    if ! command -v "$command_name" >/dev/null 2>&1; then
+        echo "Missing required command: $command_name" >&2
+        exit 1
+    fi
+done
+
+for relative_path in "${REQUIRED_FILES[@]}"; do
+    if [[ ! -f "$SRC_DIR/$relative_path" || ! -r "$SRC_DIR/$relative_path" ]]; then
+        echo "Missing required source file: $relative_path" >&2
+        exit 1
+    fi
+done
 
 echo "Installing TopWeather to $DEST_DIR"
 
-mkdir -p "$DEST_DIR"
+mkdir -p "$DEST_PARENT"
+STAGE_DIR="$(mktemp -d "$DEST_PARENT/.${UUID}.stage.XXXXXX")"
+BACKUP_DIR=""
 
-cp "$SRC_DIR/extension.js" "$DEST_DIR/"
-cp "$SRC_DIR/prefs.js" "$DEST_DIR/"
-cp "$SRC_DIR/weather.js" "$DEST_DIR/"
-cp "$SRC_DIR/alerts.js" "$DEST_DIR/"
-cp "$SRC_DIR/metadata.json" "$DEST_DIR/"
-cp "$SRC_DIR/stylesheet.css" "$DEST_DIR/"
+cleanup() {
+    if [[ -n "$STAGE_DIR" && -d "$STAGE_DIR" ]]; then
+        rm -rf "$STAGE_DIR"
+    fi
+    if [[ -n "$BACKUP_DIR" && -d "$BACKUP_DIR" && ! -e "$DEST_DIR" ]]; then
+        mv "$BACKUP_DIR" "$DEST_DIR"
+    fi
+}
+trap cleanup EXIT
 
-mkdir -p "$DEST_DIR/schemas"
-cp "$SRC_DIR/schemas/org.gnome.shell.extensions.topweather.gschema.xml" "$DEST_DIR/schemas/"
+mkdir -p "$STAGE_DIR/schemas"
+for relative_path in "${REQUIRED_FILES[@]}"; do
+    mkdir -p "$STAGE_DIR/$(dirname "$relative_path")"
+    cp "$SRC_DIR/$relative_path" "$STAGE_DIR/$relative_path"
+done
 
-echo "Compiling GSettings schemas..."
-glib-compile-schemas --strict "$DEST_DIR/schemas"
+echo "Compiling GSettings schemas in staging..."
+glib-compile-schemas --strict "$STAGE_DIR/schemas"
+
+if [[ -e "$DEST_DIR" || -L "$DEST_DIR" ]]; then
+    BACKUP_DIR="$(mktemp -d "$DEST_PARENT/.${UUID}.backup.XXXXXX")"
+    rm -rf "$BACKUP_DIR"
+    mv "$DEST_DIR" "$BACKUP_DIR"
+fi
+
+if ! mv "$STAGE_DIR" "$DEST_DIR"; then
+    echo "Unable to replace $DEST_DIR; restoring previous installation" >&2
+    exit 1
+fi
+STAGE_DIR=""
+
+if [[ -n "$BACKUP_DIR" ]]; then
+    rm -rf "$BACKUP_DIR"
+    BACKUP_DIR=""
+fi
+trap - EXIT
 
 echo
 echo "Done. To finish:"

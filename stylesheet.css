@@ -17,6 +17,16 @@
     color: #888888;
 }
 
+.topweather-status {
+    font-size: 0.85em;
+    max-width: 36em;
+}
+
+.topweather-status-warning { color: #ff7800; }
+.topweather-light .topweather-status-warning { color: #9c3d10; }
+
+.topweather-alert-body { max-width: 40em; }
+
 .topweather-headline {
     font-size: 1.1em;
     font-weight: bold;
